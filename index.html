@@ -31,7 +31,7 @@ const TRUMP_INDICT2 = 'VEayMpcEN2ehNG4rYZGR';
 const DATA = [];
 
 function parse_time(t) {
-    return (new Date(t)).toISOString().replace('T', ' ').slice(0, -5);
+    return (new Date(t)).toLocaleString(void 0, {hour12:false});
 }
 
 async function make_bet(amount, outcome, mid) {
@@ -63,9 +63,21 @@ async function make_market_display(m) {
     // p.appendChild(document.createTextNode(m.probability));
     // p.appendChild(document.createTextNode(JSON.stringify(data.bets[0])));
 
-    // for (const bet of data.bets.slice(-10)) {
     const bets = [...data.bets].reverse();
-    for (const bet of bets.slice(0, 10)) {
+    const merged_bets = [];
+    while (merged_bets.length < 10 && bets.length > 0) {
+        const cur = merged_bets[merged_bets.length-1] || {};
+        const b = bets.pop();
+        if (b.userId === cur.userId || b.outcome === cur.outcome || (cur.createdTime - b.createdTime) < 120000) {
+            cur.amount += b.amount;
+            cur.probBefore = b.probBefore;
+            cur.createdTime = b.createdTime;
+        } else {
+            merged_bets.push(b);
+        }
+    }
+    
+    for (const bet of merged_bets) {
         write2(p, `${parse_time(bet.createdTime)} ${un(bet.userId)} ${bet.amount} ${bet.outcome} ${bet.probBefore}\n`);
     }
 
