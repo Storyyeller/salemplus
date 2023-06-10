@@ -63,7 +63,7 @@ async function make_market_display(m) {
     // p.appendChild(document.createTextNode(m.probability));
     // p.appendChild(document.createTextNode(JSON.stringify(data.bets[0])));
 
-    const bets = [...data.bets].reverse();
+    const bets = [...data.bets];
     const merged_bets = [];
     while (merged_bets.length < 10 && bets.length > 0) {
         const cur = merged_bets[merged_bets.length-1] || {};
