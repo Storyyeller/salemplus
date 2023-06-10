@@ -68,7 +68,7 @@ async function make_market_display(m) {
     while (merged_bets.length < 10 && bets.length > 0) {
         const cur = merged_bets[merged_bets.length-1] || {};
         const b = bets.pop();
-        if (b.userId === cur.userId || b.outcome === cur.outcome || (cur.createdTime - b.createdTime) < 120000) {
+        if (b.userId === cur.userId && b.outcome === cur.outcome && (cur.createdTime - b.createdTime) < 120000) {
             cur.amount += b.amount;
             cur.probBefore = b.probBefore;
             cur.createdTime = b.createdTime;
