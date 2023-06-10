@@ -2,7 +2,6 @@
     <meta charset="utf-8">
     <head>
         <title>Title</title>
-        <h2>Heading</h2>
     </head>
     <body>
         <!-- <pre id="results"></pre> -->
@@ -29,6 +28,7 @@ const write = s => out.appendChild(document.createTextNode(s));
 const write2 = (e, s) => e.appendChild(document.createTextNode(s));
 
 const TRUMP_INDICT2 = 'VEayMpcEN2ehNG4rYZGR';
+const DATA = [];
 
 function parse_time(t) {
     return (new Date(t)).toISOString().replace('T', ' ').slice(0, -5);
@@ -51,6 +51,7 @@ async function make_bet(amount, outcome, mid) {
 
 async function make_market_display(m) {
     const data = await fetch('https://salemcenter.manifold.markets/api/v0/market/' + m.id).then(r => r.json());
+    DATA.push([m, data]);
 
     const e = document.createElement('div');
     const h = document.createElement('h2');
