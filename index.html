@@ -5,7 +5,8 @@
     </head>
     <body>
         <!-- <pre id="results"></pre> -->
-        <div id="results"></pre>
+        <pre id="last_updated"></pre>
+        <pre id="results"></pre>
     </body>
 </html>
 
@@ -23,15 +24,19 @@ function un(u) {return NAMES[u] || u;}
 const APIKEY = localStorage.getItem('key');
 // document.getElementById('results').textContent = APIKEY
 
+const last_updated = document.getElementById('last_updated');
 const out = document.getElementById('results');
 const write = s => out.appendChild(document.createTextNode(s));
 const write2 = (e, s) => e.appendChild(document.createTextNode(s));
 
-const TRUMP_INDICT2 = 'VEayMpcEN2ehNG4rYZGR';
-const DATA = [];
+const DATA = new Map;
+
+function format_date(d) {
+    return d.toLocaleString(void 0, {hour12:false});
+}
 
 function parse_time(t) {
-    return (new Date(t)).toLocaleString(void 0, {hour12:false});
+    return format_date(new Date(t));
 }
 
 async function make_bet(amount, outcome, mid) {
@@ -51,7 +56,14 @@ async function make_bet(amount, outcome, mid) {
 
 async function make_market_display(m) {
     const data = await fetch('https://salemcenter.manifold.markets/api/v0/market/' + m.id).then(r => r.json());
-    DATA.push([m.question, m, data]);
+    const old = DATA.get(m.id);
+    if (old !== undefined && old.bets.length === data.bets.length) {
+        // console.log('no changes to', m.id, m.question);
+        return null;
+    }
+
+
+    DATA.set(m.id, data);
 
     const e = document.createElement('div');
     const h = document.createElement('h2');
@@ -83,45 +95,87 @@ async function make_market_display(m) {
     }
 
     // const sort_key = -data.bets.slice(-1)[0].createdTime;
-    return [e, sort_key];
+    return [e, sort_key, m.id];
 }
 
+async function insert_market_data(state, args) {
+    const [e, sort_key, mid] = args;
+
+    // Remove the old display, if already present
+    let old_ind = state.findIndex(t => t[2] === mid);
+    if (old_ind !== -1) {
+        const [old] = state.splice(old_ind, 1);
+        console.log('removing element', old_ind, old);
+        out.removeChild(old[0]);
+    }
+
+    // Now insert the new element
+    let ind = state.findIndex(t => t[1] >= sort_key);
+    if (ind === -1) {
+        state.push(args);
+        out.appendChild(e);
+    } else {
+        const old = state[ind][0];
+        state.splice(ind, 0, args);
+        // console.log('insertBefore', ind, e.textContent, old.textContent);
+        out.insertBefore(e, old);
+    }
+    // write(`\n${m.question}: ${m.id} ${m.probability}\n`);
+    // write(`\n${m.question}: ${m.id}\n`);
+    // const [e, sort_key] = args;
+
+    // console.log('got', args);
+    // console.log(state.map(t => t[1]));
+
+
+    // console.log(state.map(t => t[1]));
+    // state.splice(ind, 0, [e, sort_key]);
+
+    // state.push([e, sort_key]);
+}
+
+async function fetch_and_update_markets(state, markets) {
+    const start_time = new Date;
+    const promises = [];
+    for (const m of markets) {
+        promises.push(make_market_display(m).then(args => {
+            if (args !== null) {
+                insert_market_data(state, args);
+            }
+        }));
+    }
+
+    await Promise.all(promises).then(() => {
+        const end_time = new Date;
+        console.log('start_time', format_date(start_time), 'end', format_date(end_time));
+        last_updated.textContent = `Last updated: ${format_date(start_time)}`;
+    });
+
+    setTimeout(fetch_and_update_markets, 15 * 1000, state, markets);
+}
 
 (async function() {
     const main = await fetch('https://salemcenter.manifold.markets/api/v0/markets').then(r => r.json());
+    const markets = main.filter(m => !m.isResolved);
+    const state = [];
+    fetch_and_update_markets(state, markets);
 
-    const elements = [];
-    for (const m of main.filter(m => !m.isResolved)) {
-        // write(`\n${m.question}: ${m.id} ${m.probability}\n`);
-        // write(`\n${m.question}: ${m.id}\n`);
-        make_market_display(m).then(args => {
-            const [e, sort_key] = args;
+    // const start_time = new Date;
+    // const state = [];
+    // const promises = [];
+    // for (const m of markets) {
+    //     promises.push(make_market_display(m).then(args => {
+    //         if (args !== null) {
+    //             insert_market_data(state, args);
+    //         }
+    //     }));
+    // }
 
-            // console.log('got', args);
-            // console.log(elements.map(t => t[1]));
-
-            let ind = elements.findIndex(t => t[1] >= sort_key);
-            if (ind === -1) {
-                elements.push(args);
-                out.appendChild(e);
-            } else {
-                const old = elements[ind][0];
-                elements.splice(ind, 0, args);
-                // console.log('insertBefore', ind, e.textContent, old.textContent);
-                out.insertBefore(e, old);
-            }
-
-            // console.log(elements.map(t => t[1]));
-            // elements.splice(ind, 0, [e, sort_key]);
-
-            // elements.push([e, sort_key]);
-
-
-        });
-        // out.appendChild();
-    }
-
-    // await make_bet(1, 'YES', TRUMP_INDICT2);
+    // Promise.all(promises).then(() => {
+    //     const end_time = new Date;
+    //     console.log('start_time', format_date(start_time), 'end', format_date(end_time));
+    //     last_updated.textContent = `Last updated: ${format_date(start_time)}`;
+    // });
 })()
 
 </script>
